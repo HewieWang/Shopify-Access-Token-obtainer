@@ -28,7 +28,7 @@ with st.sidebar:
     
     # 可视化配置重定向 URL
     # 默认尝试获取当前运行的 URL 环境
-    default_redirect = "http://localhost:8501/"
+    default_redirect = "https://harvey-shopify-access-token-obtainer.streamlit.app/"
     redirect_uri = st.text_input("REDIRECT_URI", value=default_redirect)
     
     st.divider()
