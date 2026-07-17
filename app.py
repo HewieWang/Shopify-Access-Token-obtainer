@@ -9,12 +9,11 @@ if "client_id" not in st.session_state:
     st.session_state.client_id = ""
 if "client_secret" not in st.session_state:
     st.session_state.client_secret = ""
-if "selected_scopes" not in st.session_state:
-    st.session_state.selected_scopes = ["read_products", "read_files", "write_files"]
+# 将 scopes 改为字符串，默认给出常用权限
+if "scopes_str" not in st.session_state:
+    st.session_state.scopes_str = "read_products,read_files,write_files"
 if "redirect_uri" not in st.session_state:
     st.session_state.redirect_uri = "https://harvey-shopify-access-token-obtainer.streamlit.app/"
-if "scopes_str" not in st.session_state:
-    st.session_state.scopes_str = ",".join(st.session_state.selected_scopes)
 
 # --- 侧边栏：App 配置可视化 ---
 with st.sidebar:
@@ -36,19 +35,17 @@ with st.sidebar:
         key="client_secret"
     )
 
-    # 可视化配置 Scopes
-    available_scopes = [
-        "read_products", "write_products", "read_orders", "write_orders",
-        "read_customers", "write_customers", "read_files", "write_files",
-        "read_inventory", "write_inventory"
-    ]
-    selected_scopes = st.multiselect(
-        "选择权限 (SCOPES)",
-        options=available_scopes,
-        default=st.session_state.selected_scopes,
-        key="selected_scopes"
+    # 修改为文本输入框，用户自行输入 scopes（逗号分隔）
+    scopes_str = st.text_input(
+        "权限范围 (SCOPES) 用逗号分隔",
+        value=st.session_state.scopes_str,
+        placeholder="例如: read_products,write_products,read_files",
+        key="scopes_str",
+        help="多个权限用英文逗号分隔，不要有空格（或保留空格也行，系统会自动去除）"
     )
-    st.session_state.scopes_str = ",".join(selected_scopes)
+    # 去除可能多余的空格，方便拼接
+    scopes_str_clean = ",".join([s.strip() for s in scopes_str.split(",") if s.strip()])
+    st.session_state.scopes_str = scopes_str_clean  # 更新为干净格式
 
     redirect_uri = st.text_input(
         "REDIRECT_URI",
@@ -79,7 +76,7 @@ if "code" in query_params and "shop" in query_params:
         st.json({
             "Shop": shop,
             "Client ID": client_id[:5] + "******" if client_id else "",
-            "Scopes": selected_scopes
+            "Scopes": scopes_str_clean  # 显示清理后的 scopes
         })
 
     if st.button("🔥 立即兑换 Access Token", type="primary"):
@@ -128,11 +125,11 @@ else:
                 # 自动补全域名
                 full_shop_url = shop_url if ".myshopify.com" in shop_url else f"{shop_url}.myshopify.com"
 
-                # 构建授权 URL
+                # 构建授权 URL，使用清理后的 scopes
                 auth_url = (
                     f"https://{full_shop_url}/admin/oauth/authorize?"
                     f"client_id={client_id}&"
-                    f"scope={st.session_state.scopes_str}&"
+                    f"scope={scopes_str_clean}&"
                     f"redirect_uri={redirect_uri}"
                 )
 
@@ -146,7 +143,8 @@ with st.expander("ℹ️ 使用帮助"):
     st.markdown("""
     1. **Shopify 后台配置**: 登录 [Shopify Partner Dashboard](https://partners.shopify.com/)。
     2. **创建 App**: 在 Apps 菜单下创建一个 App。
-    3. **设置 Redirect**: 在 App Setup 页面，将本程序的地址（默认 `http://localhost:8501/`）填入 **Allowed redirection URL**。
+    3. **设置 Redirect**: 在 App Setup 页面，将本程序的地址填入 **Allowed redirection URL**。
     4. **复制密钥**: 将 API Key (Client ID) 和 Secret 填入本工具左侧边栏。
-    5. **开始**: 输入店铺名点击授权即可。
+    5. **输入权限**: 在侧边栏的 **权限范围** 框中输入需要的权限（用英文逗号分隔），例如 `read_products,write_products`。
+    6. **开始**: 输入店铺名点击授权即可。
     """)
