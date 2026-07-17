@@ -12,7 +12,7 @@ if "client_secret" not in st.session_state:
 if "scopes_str" not in st.session_state:
     st.session_state.scopes_str = "read_products,read_files,write_files"
 if "redirect_uri" not in st.session_state:
-    st.session_state.redirect_uri = "https://harvey-shopify-access-token-obtainer.streamlit.app/"
+    st.session_state.redirect_uri = "https://harvey-shopify-access-token-obtainer.streamlit.app"
 
 # 辅助函数：获取清理后的 scopes（去除多余空格，过滤空项）
 def get_clean_scopes():
