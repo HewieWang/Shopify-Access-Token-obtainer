@@ -9,18 +9,24 @@ if "client_id" not in st.session_state:
     st.session_state.client_id = ""
 if "client_secret" not in st.session_state:
     st.session_state.client_secret = ""
-# 将 scopes 改为字符串，默认给出常用权限
 if "scopes_str" not in st.session_state:
     st.session_state.scopes_str = "read_products,read_files,write_files"
 if "redirect_uri" not in st.session_state:
     st.session_state.redirect_uri = "https://harvey-shopify-access-token-obtainer.streamlit.app/"
+
+# 辅助函数：获取清理后的 scopes（去除多余空格，过滤空项）
+def get_clean_scopes():
+    raw = st.session_state.scopes_str
+    if not raw:
+        return ""
+    parts = [s.strip() for s in raw.split(",") if s.strip()]
+    return ",".join(parts)
 
 # --- 侧边栏：App 配置可视化 ---
 with st.sidebar:
     st.header("⚙️ Shopify App 配置")
     st.info("请先在此处填写您在 Shopify Partner 后台创建的 App 信息")
 
-    # 绑定输入到 session_state
     client_id = st.text_input(
         "CLIENT_ID",
         value=st.session_state.client_id,
@@ -35,17 +41,14 @@ with st.sidebar:
         key="client_secret"
     )
 
-    # 修改为文本输入框，用户自行输入 scopes（逗号分隔）
-    scopes_str = st.text_input(
+    # 文本输入框，用户自行输入 scopes（逗号分隔）
+    st.text_input(
         "权限范围 (SCOPES) 用逗号分隔",
         value=st.session_state.scopes_str,
         placeholder="例如: read_products,write_products,read_files",
         key="scopes_str",
-        help="多个权限用英文逗号分隔，不要有空格（或保留空格也行，系统会自动去除）"
+        help="多个权限用英文逗号分隔，可以加空格，系统自动清理"
     )
-    # 去除可能多余的空格，方便拼接
-    scopes_str_clean = ",".join([s.strip() for s in scopes_str.split(",") if s.strip()])
-    st.session_state.scopes_str = scopes_str_clean  # 更新为干净格式
 
     redirect_uri = st.text_input(
         "REDIRECT_URI",
@@ -76,7 +79,7 @@ if "code" in query_params and "shop" in query_params:
         st.json({
             "Shop": shop,
             "Client ID": client_id[:5] + "******" if client_id else "",
-            "Scopes": scopes_str_clean  # 显示清理后的 scopes
+            "Scopes": get_clean_scopes()  # 显示清理后的 scopes
         })
 
     if st.button("🔥 立即兑换 Access Token", type="primary"):
@@ -126,10 +129,11 @@ else:
                 full_shop_url = shop_url if ".myshopify.com" in shop_url else f"{shop_url}.myshopify.com"
 
                 # 构建授权 URL，使用清理后的 scopes
+                clean_scopes = get_clean_scopes()
                 auth_url = (
                     f"https://{full_shop_url}/admin/oauth/authorize?"
                     f"client_id={client_id}&"
-                    f"scope={scopes_str_clean}&"
+                    f"scope={clean_scopes}&"
                     f"redirect_uri={redirect_uri}"
                 )
 
